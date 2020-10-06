@@ -59,8 +59,14 @@ def from_bytes(b):
     return o
 
 
-if __name__ == '__main__':
+def _install(c):
+    r = receive_file(c, "requirements.txt")
+    if r:
+        print(">> installing requirements.txt")
+        subprocess.run(["pip", "install", "-r", "requirements.txt"])
 
+
+if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('port', type=int, help='server port')
     args = parser.parse_args()
@@ -78,11 +84,8 @@ if __name__ == '__main__':
         c, addr = s.accept()      
         print('successfully connected to', addr )
 
-        # step 2: receive requirements from client and install
-        r = receive_file(c, "requirements.txt")
-        if r:
-            print(">> installing requirements.txt")
-            subprocess.run(["pip", "install", "-r", "requirements.txt"])
+        # step 2: receive requirements from client and install necessary packages
+        _install(c)
 
         # step 2: receive source file from client and save it as "barfoo"
         temp_fname = "barfoo.py"
@@ -101,4 +104,4 @@ if __name__ == '__main__':
         # close connection with client
         c.close() 
 
-        print("closed connection with client")
+        print(">> closed connection with client")

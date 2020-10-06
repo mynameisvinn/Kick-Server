@@ -7,7 +7,7 @@ import sys
 import subprocess
 import jsonpickle
 import argparse
-
+import subprocess
 
 def execute(fname):
     """execute python source code and return res to client.
@@ -78,8 +78,11 @@ if __name__ == '__main__':
         c, addr = s.accept()      
         print('successfully connected to', addr )
 
-        # step 2: receive requirements from client
-        _ = receive_file(c, "requirements.txt")
+        # step 2: receive requirements from client and install
+        r = receive_file(c, "requirements.txt")
+        if r:
+            print(">> installing requirements.txt")
+            subprocess.run(["pip", "install", "-r", "requirements.txt"])
 
         # step 2: receive source file from client and save it as "barfoo"
         temp_fname = "barfoo.py"

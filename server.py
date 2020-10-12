@@ -9,6 +9,7 @@ import jsonpickle
 import argparse
 import subprocess
 
+
 def execute(fname):
     """execute python source code and return res to client.
 
@@ -38,7 +39,7 @@ def receive_file(c, out_fname):
 
     l = c.recv(65536 * 5)
     print("reading", l)
-    with open(out_fname,'wb') as f:
+    with open(out_fname, 'wb') as f:
         f.write(l)
     return True
 
@@ -59,16 +60,20 @@ def from_bytes(b):
     return o
 
 
-def _install(c):
+def _install_packages(c):
+    """pip install packages necessary for client script.
+    """
     r = receive_file(c, "requirements.txt")
     if r:
-        print(">> installing requirements.txt")
-        subprocess.run(["pip", "install", "-r", "requirements.txt"])
+        ret = subprocess.run(["pip", "install", "-r", "requirements.txt"])
+
+        if ret.returncode != 0:  # https://www.google.com/search?q=return+code+0&oq=return+code+0&aqs=chrome..69i57.3240j0j1&sourceid=chrome&ie=UTF-8
+            raise ValueError
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('port', type=int, help='server port')
+    parser.add_argument('--port', type=int, help='server port')
     args = parser.parse_args()
 
     print(">> server up with port", args.port)
@@ -85,7 +90,8 @@ if __name__ == '__main__':
         print('successfully connected to', addr )
 
         # step 2: receive requirements from client and install necessary packages
-        # _install(c)
+        print(">> installing requirements.txt")
+        _ = _install_packages(c)
 
         # step 2: receive source file from client and save it as "barfoo"
         temp_fname = "barfoo.py"

@@ -110,4 +110,4 @@ if __name__ == '__main__':
         # close connection with client
         c.close() 
 
-        print(">> closed connection with client")
+        print(">> closed connection with client", addr)

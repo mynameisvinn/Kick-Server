@@ -36,7 +36,7 @@ def receive_file(c, out_fname):
     """
     # data = c.recv(1024).decode('utf-8')
 
-    l = c.recv(1024)
+    l = c.recv(65536 * 5)
     print("reading", l)
     with open(out_fname,'wb') as f:
         f.write(l)
@@ -85,7 +85,7 @@ if __name__ == '__main__':
         print('successfully connected to', addr )
 
         # step 2: receive requirements from client and install necessary packages
-        _install(c)
+        # _install(c)
 
         # step 2: receive source file from client and save it as "barfoo"
         temp_fname = "barfoo.py"

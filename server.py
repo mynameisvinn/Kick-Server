@@ -8,6 +8,10 @@ import subprocess
 import jsonpickle
 import argparse
 import subprocess
+import cloudpickle
+import dill
+import os
+import torch
 
 
 def execute(fname):
@@ -28,7 +32,7 @@ def execute(fname):
     # send numpy results as bytes https://markhneedham.com/blog/2018/04/07/python-serialize-deserialize-numpy-2d-arrays/
     res = namespace['res']
     return res
-    
+
 
 def receive_file(c, out_fname):
     """receive bytes from client and save as out_fname.
@@ -42,36 +46,23 @@ def receive_file(c, out_fname):
     with open(out_fname, 'wb') as f:
         f.write(l)
     return True
-
-
-def to_bytes(o):
-    """convert arbitrary python object to bytes.
-    """
-    j = jsonpickle.encode(o)  # python object to json, which is a str  # https://www.journaldev.com/23500/python-string-to-bytes-to-string    
-    b = bytes(j, encoding='utf-8')  # json to bytes# https://www.journaldev.com/23500/python-string-to-bytes-to-string
-    return b
-
-
-def from_bytes(b):
-    """convert bytes back to python object.
-    """
-    j = b.decode()  # from bytes to json
-    o = jsonpickle.decode(j)  # from json to python object
-    return o
-
+    
 
 def _install_packages(c):
     """pip install packages necessary for client script.
     """
+    # receive requirements from client
     r = receive_file(c, "requirements.txt")
+    
+    # pip install
     if r:
         ret = subprocess.run(["pip", "install", "-r", "requirements.txt"])
-
         if ret.returncode != 0:  # https://www.google.com/search?q=return+code+0&oq=return+code+0&aqs=chrome..69i57.3240j0j1&sourceid=chrome&ie=UTF-8
             raise ValueError
 
 
 if __name__ == '__main__':
+    
     parser = argparse.ArgumentParser()
     parser.add_argument('--port', type=int, help='server port')
     args = parser.parse_args()
@@ -83,6 +74,7 @@ if __name__ == '__main__':
     endpoint = ('', args.port)  # https://stackoverflow.com/questions/8033552/python-socket-bind-to-any-ip
     s.bind(endpoint)
     s.listen(5)
+    
     while True:
 
         # step 1: connect with client
@@ -91,23 +83,23 @@ if __name__ == '__main__':
 
         # step 2: receive requirements from client and install necessary packages
         print(">> installing requirements.txt")
-        _ = _install_packages(c)
+        _install_packages(c)
 
         # step 2: receive source file from client and save it as "barfoo"
         temp_fname = "barfoo.py"
-        _ = receive_file(c, temp_fname)
+        receive_file(c, temp_fname)
 
-        # step3 3: evaluates source and return result
+        # step 3: evaluates source and return result
         res = execute(temp_fname)
 
-        # step 4: convert results to bytes so it can be sent over socket
-        b = to_bytes(res)
-        print(from_bytes(b))
+        # step 4: convert res to bytes as a file
+        with open('results.pkl', 'wb') as f:
+            cloudpickle.dump(res, f)
 
-        # step 5: send bytes to client
-        c.send(b)
-
-        # close connection with client
+        # then send that file over a socket
+        with open('results.pkl', "rb") as f:
+            b = f.read()
+        c.sendall(b)  # https://stackoverflow.com/questions/56194446/send-big-file-over-socket
+        
         c.close() 
-
         print(">> closed connection with client", addr)

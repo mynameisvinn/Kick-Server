@@ -9,9 +9,7 @@ import jsonpickle
 import argparse
 import subprocess
 import cloudpickle
-import dill
 import os
-import torch
 
 
 def execute(fname):
@@ -51,6 +49,7 @@ def receive_file(c, out_fname):
 def _install_packages(c):
     """pip install packages necessary for client script.
     """
+    
     # receive requirements from client
     r = receive_file(c, "requirements.txt")
     
@@ -92,14 +91,20 @@ if __name__ == '__main__':
         # step 3: evaluates source and return result
         res = execute(temp_fname)
 
-        # step 4: convert res to bytes as a file
+        # step 4: convert res to bytes on a file
         with open('results.pkl', 'wb') as f:
             cloudpickle.dump(res, f)
 
-        # then send that file over a socket
+        # step 5: send that file over a socket
         with open('results.pkl', "rb") as f:
             b = f.read()
         c.sendall(b)  # https://stackoverflow.com/questions/56194446/send-big-file-over-socket
         
+        # step 6: close connection
         c.close() 
         print(">> closed connection with client", addr)
+
+        # clean up
+        os.remove("barfoo.py")
+        os.remove("requirements.txt")
+        os.remove("results.pkl")
